@@ -1,0 +1,86 @@
+// Prisma schema for Carbonix AI
+// Supports PostgreSQL (Neon, Supabase, Railway) and SQLite for local development
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")   // Required by Supabase when pgbouncer=true
+}
+
+
+model User {
+  id              String           @id @default(uuid())
+  name            String
+  email           String           @unique
+  passwordHash    String
+  role            String           @default("USER")
+  location        String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  activities      Activity[]
+  goals           Goal[]
+  recommendations Recommendation[]
+  chatMessages    ChatMessage[]
+}
+
+model Activity {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category       String   // "electricity" | "transport" | "food"
+  activityType   String   // "grid", "car", "bus", "train", "flight", "vegetarian", "meat", etc.
+  quantity       Float
+  unit           String   // "kWh", "km", "days", etc.
+  emissionFactor Float
+  carbonEmission Float
+  date           DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@index([date])
+  @@index([category])
+}
+
+model Goal {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  targetEmission Float
+  startDate      DateTime  @default(now())
+  endDate        DateTime?
+  status         String    @default("IN_PROGRESS") // "IN_PROGRESS" | "ACHIEVED" | "EXPIRED"
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Recommendation {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category           String
+  title              String
+  description        String
+  potentialReduction Float
+  createdAt          DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   // "user" | "assistant"
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
